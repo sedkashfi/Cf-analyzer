@@ -5,7 +5,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="CF Analyzer", page_icon="📊", layout="wide")
 st.title("🔥 Codeforces Rating Analyzer")
-st.markdown("**تحلیل Accepted + محبوبیت سوال**")
+st.markdown("**تحلیل Accepted — ۲۴ ساعت و ۷ روز**")
 
 handle = st.text_input("هندل Codeforces:", placeholder="tourist")
 
@@ -25,60 +25,56 @@ if st.button("تحلیل کن 🚀", type="primary") and handle.strip():
             day_ago = now - 24 * 3600
             week_ago = now - 7 * 24 * 3600
             
-            details = []
+            details_24h = []
+            details_7d = []
             
             for sub in subs:
                 if sub.get('verdict') != 'OK':
                     continue
                 ctime = sub.get('creationTimeSeconds')
-                if not ctime or ctime < week_ago:
+                if not ctime:
                     continue
                     
                 prob = sub.get('problem', {})
                 rating = prob.get('rating')
-                contest_id = prob.get('contestId', 0)
                 if not rating:
                     continue
                     
-                # محبوبیت تقریبی
-                if contest_id >= 2000:
-                    popularity = "خیلی محبوب (جدید)"
-                elif contest_id >= 1600:
-                    popularity = "محبوب"
-                else:
-                    popularity = "کلاسیک (قدیمی)"
-                
-                details.append({
+                row = {
                     'Rating': rating,
-                    'Popularity': popularity,
-                    'Problem': f"{contest_id}{prob.get('index','')}",
+                    'Problem': f"{prob.get('contestId','')}{prob.get('index','')}",
                     'Name': prob.get('name', 'N/A'),
                     'Date': datetime.fromtimestamp(ctime).strftime("%Y-%m-%d")
-                })
+                }
+                
+                if ctime >= week_ago:
+                    details_7d.append(row)
+                if ctime >= day_ago:
+                    details_24h.append(row)
             
-            if not details:
+            # نمایش متریک‌ها
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Accepted در ۲۴ ساعت", len(details_24h))
+            with col2:
+                st.metric("Accepted در ۷ روز", len(details_7d))
+            
+            if not details_7d:
                 st.info(f"@{handle} در ۷ روز اخیر Accepted نداشته.")
             else:
-                df = pd.DataFrame(details)
+                df = pd.DataFrame(details_7d)
                 
-                # متریک‌ها
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Accepted در ۲۴ ساعت", len([d for d in details if True]))  # تقریبی
-                with col2:
-                    st.metric("Accepted در ۷ روز", len(df))
-                
-                st.subheader("توزیع ریتینگ")
+                st.subheader("توزیع ریتینگ (۷ روز)")
                 summary = df['Rating'].value_counts().sort_index(ascending=False)
                 st.bar_chart(summary)
                 
-                st.subheader("جزئیات + محبوبیت")
+                st.subheader("جزئیات کامل (۷ روز)")
                 st.dataframe(df.sort_values(by='Rating', ascending=False), use_container_width=True)
                 
                 csv = df.to_csv(index=False).encode('utf-8')
-                st.download_button("دانلود CSV", csv, f"{handle}_analysis.csv", "text/csv")
+                st.download_button("دانلود CSV (۷ روز)", csv, f"{handle}_7days.csv", "text/csv")
                 
         except Exception as e:
             st.error(f"خطا: {str(e)}")
 
-st.caption("Made with ❤️") 
+st.caption("Made with ❤️")
