@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import datetime
+import time
 from collections import defaultdict
 
 st.set_page_config(page_title="CF Analyzer", page_icon="📊", layout="wide")
@@ -78,6 +79,6 @@ if st.button("تحلیل کن 🚀", type="primary") and handle.strip():
                 st.download_button("دانلود CSV", csv, f"{handle}_analysis.csv", "text/csv")
                 
         except Exception as e:
-            st.error(f"خطای اتصال: {str(e)}")
+            st.error(f"خطا: {str(e)}")
 
-st.caption("Made with ❤️ for Codeforces users")
+st.caption("Made with ❤️ for Codeforces")
