@@ -5,7 +5,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="CF Analyzer", page_icon="📊", layout="wide")
 st.title("🔥 Codeforces Rating Analyzer")
-st.markdown("**تحلیل Accepted — ۲۴ ساعت و ۷ روز**")
+st.markdown("**تحلیل Accepted + سطح محبوبیت سوال**")
 
 handle = st.text_input("هندل Codeforces:", placeholder="tourist")
 
@@ -25,7 +25,7 @@ if st.button("تحلیل کن 🚀", type="primary") and handle.strip():
             day_ago = now - 24 * 3600
             week_ago = now - 7 * 24 * 3600
             
-            details_24h = []
+            details_24h = 0
             details_7d = []
             
             for sub in subs:
@@ -37,12 +37,22 @@ if st.button("تحلیل کن 🚀", type="primary") and handle.strip():
                     
                 prob = sub.get('problem', {})
                 rating = prob.get('rating')
+                contest_id = prob.get('contestId', 0)
                 if not rating:
                     continue
                     
+                # سطح محبوبیت
+                if contest_id >= 2000:
+                    popularity = "خیلی جدید"
+                elif contest_id >= 1600:
+                    popularity = "محبوب"
+                else:
+                    popularity = "کلاسیک"
+                
                 row = {
                     'Rating': rating,
-                    'Problem': f"{prob.get('contestId','')}{prob.get('index','')}",
+                    'Popularity': popularity,
+                    'Problem': f"{contest_id}{prob.get('index','')}",
                     'Name': prob.get('name', 'N/A'),
                     'Date': datetime.fromtimestamp(ctime).strftime("%Y-%m-%d")
                 }
@@ -50,12 +60,11 @@ if st.button("تحلیل کن 🚀", type="primary") and handle.strip():
                 if ctime >= week_ago:
                     details_7d.append(row)
                 if ctime >= day_ago:
-                    details_24h.append(row)
+                    details_24h += 1
             
-            # نمایش متریک‌ها
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("Accepted در ۲۴ ساعت", len(details_24h))
+                st.metric("Accepted در ۲۴ ساعت", details_24h)
             with col2:
                 st.metric("Accepted در ۷ روز", len(details_7d))
             
@@ -64,15 +73,15 @@ if st.button("تحلیل کن 🚀", type="primary") and handle.strip():
             else:
                 df = pd.DataFrame(details_7d)
                 
-                st.subheader("توزیع ریتینگ (۷ روز)")
+                st.subheader("توزیع ریتینگ")
                 summary = df['Rating'].value_counts().sort_index(ascending=False)
                 st.bar_chart(summary)
                 
-                st.subheader("جزئیات کامل (۷ روز)")
+                st.subheader("جزئیات + سطح محبوبیت")
                 st.dataframe(df.sort_values(by='Rating', ascending=False), use_container_width=True)
                 
                 csv = df.to_csv(index=False).encode('utf-8')
-                st.download_button("دانلود CSV (۷ روز)", csv, f"{handle}_7days.csv", "text/csv")
+                st.download_button("دانلود CSV", csv, f"{handle}_analysis.csv", "text/csv")
                 
         except Exception as e:
             st.error(f"خطا: {str(e)}")
