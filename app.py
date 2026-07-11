@@ -5,7 +5,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="CF Analyzer", page_icon="📊", layout="wide")
 st.title("🔥 Codeforces Rating Analyzer")
-st.markdown("**تحلیل Accepted در ۷ روز اخیر**")
+st.markdown("**تحلیل Acceptedها — ریتینگ + سن سوال**")
 
 handle = st.text_input("هندل Codeforces:", placeholder="tourist")
 
@@ -25,6 +25,7 @@ if st.button("تحلیل کن 🚀", type="primary") and handle.strip():
             week_ago = now - 7 * 24 * 3600
             
             details = []
+            rating_count = {}
             
             for sub in subs:
                 if sub.get('verdict') != 'OK':
@@ -38,24 +39,41 @@ if st.button("تحلیل کن 🚀", type="primary") and handle.strip():
                 if not rating:
                     continue
                     
+                contest_id = prob.get('contestId', 0)
+                age = "جدید (۲۰۲۴+)" if contest_id >= 1800 else "قدیمی (قبل ۲۰۲۴)"
+                
                 details.append({
                     'Rating': rating,
-                    'Problem': f"{prob.get('contestId','')}{prob.get('index','')}",
+                    'Category': age,
+                    'Problem': f"{contest_id}{prob.get('index','')}",
                     'Name': prob.get('name', 'N/A'),
                     'Date': datetime.fromtimestamp(ctime).strftime("%Y-%m-%d")
                 })
+                
+                if rating not in rating_count:
+                    rating_count[rating] = {"جدید": 0, "قدیمی": 0}
+                rating_count[rating][age] += 1
             
             if not details:
                 st.info(f"@{handle} در ۷ روز اخیر Accepted نداشته.")
             else:
                 df = pd.DataFrame(details)
+                
                 st.success(f"@{handle} — {len(df)} Accepted")
                 
-                st.subheader("توزیع ریتینگ")
-                summary = df['Rating'].value_counts().sort_index(ascending=False)
-                st.bar_chart(summary)
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Accepted", len(df))
+                with col2:
+                    st.metric("ریتینگ مختلف", len(rating_count))
+                with col3:
+                    st.metric("جدید", sum(d['Category'] == "جدید (۲۰۲۴+)" for d in details))
                 
-                st.subheader("جزئیات")
+                st.subheader("توزیع ریتینگ")
+                summary = df.groupby(['Rating', 'Category']).size().unstack(fill_value=0)
+                st.dataframe(summary.sort_index(ascending=False), use_container_width=True)
+                
+                st.subheader("جزئیات کامل")
                 st.dataframe(df.sort_values(by='Rating', ascending=False), use_container_width=True)
                 
                 csv = df.to_csv(index=False).encode('utf-8')
@@ -64,4 +82,4 @@ if st.button("تحلیل کن 🚀", type="primary") and handle.strip():
         except Exception as e:
             st.error(f"خطا: {str(e)}")
 
-st.caption("نسخه ساده و بدون ارور")
+st.caption("Made with ❤️ for Codeforces")
